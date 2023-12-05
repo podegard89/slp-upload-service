@@ -4,6 +4,8 @@ import multer from "multer";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import { supabase } from "./lib/supabase";
+import { clearUploadsFolder, extractDataFromSlippiFiles } from "./functions";
+import { SlippiGame } from "@slippi/slippi-js";
 dotenv.config();
 
 const app = express();
@@ -73,8 +75,32 @@ app.post(
   authenticate,
   upload.array("slpFiles", 5),
   (req: Request, res: Response) => {
-    console.log(req.files);
+    if (!req.files || req.files.length === 0) {
+      clearUploadsFolder();
+      console.log("No files provided");
+      res.redirect(process.env.CLIENT_URL_DEV + "/upload");
+      return;
+    }
+
     console.log(res.locals.userData.user_metadata.name);
+
+    const uploadedFiles = req.files as Express.Multer.File[];
+
+    const slippiGamesData = extractDataFromSlippiFiles(uploadedFiles);
+
+    if (slippiGamesData.length === 0) {
+      clearUploadsFolder();
+      console.log("No valid files provided");
+      res.redirect(process.env.CLIENT_URL_DEV + "/upload");
+      return;
+    }
+
+    slippiGamesData.forEach((gameData) => {
+      console.log(gameData);
+    });
+
+    clearUploadsFolder();
+
     res.redirect(process.env.CLIENT_URL_DEV + "/dashboard");
   }
 );
